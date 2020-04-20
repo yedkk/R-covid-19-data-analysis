@@ -1,0 +1,120 @@
+---
+title: "STAT184 Final project"
+output: html_notebook
+---
+# Analysis for coronavirus data.
+
+# https://en.wikipedia.org/wiki/List_of_U.S._states_and_territories_by_GDP
+
+library(readr)
+us_states <- read_csv("us-states.csv")
+View(us_states)
+```{r}
+# reade the packages into r notebook
+library(readr)
+library(tidyverse)
+library(ggplot2)
+```
+
+```{r}
+us_states_cases <- read_csv("us-states.csv")
+us_doctornum <- read_csv("us_doctor.csv")
+```
+
+
+```{r}
+us_states_cases%>%
+  tail(10)
+us_states_cases%>%
+  glimpse()
+```
+
+```{r}
+us_doctornum%>%
+  head(10)
+us_doctornum%>%
+  glimpse()
+```
+```{r}
+new_data<-us_states_cases%>%
+  filter(date == "2020-04-18")
+sum(new_data$cases)
+```
+```{r}
+penn_cases<- us_states_cases%>%
+  filter(state == "Pennsylvania")
+penn_cases%>%
+  ggplot(aes(x= date, y = deaths))+
+  geom_col()+
+  geom_line(aes(y=cases))
+```
+
+
+```{r}
+
+```
+
+```{r}
+us_states_cases%>%
+  arrange(desc(cases))%>%
+  distinct(state)
+```
+
+
+```{r}
+top5_states <-us_states_cases %>%
+  filter( grepl( "^New York",state) |grepl( "^New Jersey",state)|grepl( "^Pennsylvania",state)|grepl( "^Massachusetts",state)|grepl( "^California",state))
+top5_states %>%
+  ggplot(aes(x=date, y = (cases), group = state)) +
+  geom_line(aes(color=state))
+  
+```
+
+
+
+```{r}
+us_doctornum[,"doctor_condition"] <- NA
+for(i in 1:nrow(us_doctornum)) {
+    if (us_doctornum[i,2]>350){
+      us_doctornum[i,3]<-"high"
+    }
+    
+}
+```
+
+```{r}
+
+us_doctornum
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+```{r}
+
+```
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
