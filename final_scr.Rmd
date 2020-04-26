@@ -2,114 +2,192 @@
 title: "STAT184 Final project"
 output: html_notebook
 ---
-# Analysis for coronavirus data.
+# <span style="color:blue">Analysis for coronavirus data.</span>
 
-# https://en.wikipedia.org/wiki/List_of_U.S._states_and_territories_by_GDP
 
-library(readr)
-us_states <- read_csv("us-states.csv")
-View(us_states)
-```{r}
-# reade the packages into r notebook
+###The 2019–20 coronavirus pandemic is an ongoing pandemic of coronavirus disease 2019 (COVID-19) caused by severe acute respiratory syndrome coronavirus 2 (SARS‑CoV‑2). The outbreak was identified in Wuhan, China, in December 2019. The World Health Organization declared the outbreak to be a Public Health Emergency of International Concern on 30 January 2020, and recognised it as a pandemic on 11 March 2020. As of 23 April 2020, more than 2.62 million cases of COVID-19 have been reported in 185 countries and territories, resulting in more than 183,000 deaths. More than 709,000 people have recovered, although there may be a possibility of relapse or reinfection.
+
+![Alt text](https://www.sciencemag.org/sites/default/files/styles/article_main_large/public/Coronavirus_bats_cave_collection_1280x720.jpg?itok=KEzFpeFh)
+
+###What's more, as of now, coronaviruses have infected more than 900,000 people in the United States and caused more than 50,000 deaths. So I downloaded the data files of the number of diagnoses and deaths in each state from the Internet.
+
+###I think I have a few things to analysis this data.
+
+###1. exploring the case data of us by each state, find the current coronavirus cases. And draw the graph about the growing trend of Pennsylvaina, then compare it to other state in one graph. Ranking the state by case number, I will find the top 5 states in rank and draw the growing trend of their case number in one graph. 
+
+###First, I load the package into r session.
+```{r message=FALSE, warning=FALSE, results='hide'}
+#loading the packages into r notebook
 library(readr)
 library(tidyverse)
 library(ggplot2)
+library(rvest)
+library(party)
 ```
 
-```{r}
+###Second, I load the cvs file and webpage into data frames.
+```{r message=FALSE, warning=FALSE, results='hide'}
+#loading the cvs file from same root
 us_states_cases <- read_csv("us-states.csv")
 us_doctornum <- read_csv("us_doctor.csv")
+#loading the url link
+page <- "https://en.wikipedia.org/wiki/List_of_U.S._states_and_territories_by_GDP"
+#formating the url link to datatable
+tableList <- page %>%
+  read_html() %>%
+  html_nodes(css = "table") %>%
+  html_table(fill = TRUE)
+gdp_table <-tableList[[3]]
 ```
 
-
+###Third, I check these data frames by head, tail and glimpse functions.
 ```{r}
+#checking the table us_states_cases
 us_states_cases%>%
   tail(10)
 us_states_cases%>%
   glimpse()
-```
-
-```{r}
+#checking the table us_doctornum
 us_doctornum%>%
   head(10)
 us_doctornum%>%
   glimpse()
+#checking the table gdp_table
+gdp_table%>%
+  tail(10)
 ```
+
+###Then use filter function to get the newest data of each state and add the case number of all state. Then we get the total case number of US.
 ```{r}
 new_data<-us_states_cases%>%
-  filter(date == "2020-04-18")
-sum(new_data$cases)
+  filter(date == "2020-04-18") #filter the specific date
+sum(new_data$cases) #get the total case number
 ```
+
+###I use the filter funtion to get the row that belong to Pennsylvania and Massachusetts, and I assign these rows to an new data frame.
+###Then I draw the graph that compare the case and deaths number of two states.
 ```{r}
-penn_cases<- us_states_cases%>%
-  filter(state == "Pennsylvania")
+penn_cases<- us_states_cases%>% #assign the new data frame
+  filter(state == "Pennsylvania"|state == "Massachusetts") #filter the two states
 penn_cases%>%
-  ggplot(aes(x= date, y = deaths))+
-  geom_col()+
-  geom_line(aes(y=cases))
+  ggplot(aes(x= date, y = cases))+ #use the ggplot package
+  geom_col(aes(y=deaths, color=state))+ #use the column to express the death number
+  geom_line(aes(y=cases, color=state))+ #use the line to express the case number
+  facet_wrap(~state) #use the facet to define two states
 ```
 
-
+###Then, I use arrange function to explore what are top 5 five states in case number.
 ```{r}
-
+new_data%>%
+  arrange(desc(cases))%>% #arranging the column by cases
+  distinct(state)%>%
+  head(5)
 ```
 
+###Then I draw the graph to show the growing of cases of top 5 states, and I use different color to show the different states. 
 ```{r}
-us_states_cases%>%
-  arrange(desc(cases))%>%
-  distinct(state)
-```
-
-
-```{r}
-top5_states <-us_states_cases %>%
-  filter( grepl( "^New York",state) |grepl( "^New Jersey",state)|grepl( "^Pennsylvania",state)|grepl( "^Massachusetts",state)|grepl( "^California",state))
+top5_states <-us_states_cases %>% #assiging the new table.
+  filter( grepl( "^New York",state) |grepl( "^New Jersey",state)|grepl( "^Pennsylvania",state)|grepl( "^Massachusetts",state)|grepl( "^California",state)) #using the regular expressions to filter the top 5 states.
 top5_states %>%
-  ggplot(aes(x=date, y = (cases), group = state)) +
-  geom_line(aes(color=state))
+  ggplot(aes(x=date, y = (cases), group = state)) + #using ggplot function.
+  geom_line(aes(color=state)) #using different color to express different states.
   
 ```
 
+###2. I find the death numbers of different states have very large difference. So, I want to find the factor that can affect the death rate of each state. Thus, I think there might be some variables that attribute to the difference of death rate of different states. If we can find the relation behind it, we can probably reduce the death rate of some region which can save many lives.
 
+###From my pointview, I think that the wealth level and the proportion of doctors in the population may be related to the mortality rate. So, I collect other data source. One is the data table about the doctor number in 100000 people for each state. And another one is the data table about the gdp per-capite for each state in US. I want to draw some graphs to investigate the relation between the deaths rate and these variable.
 
+###I transfer the number of doctors in per 100000 people into an new variable "doctor_condition". The "doctor_condition" has 4 grades which are high, medium, low, and poor.
 ```{r}
-us_doctornum[,"doctor_condition"] <- NA
-for(i in 1:nrow(us_doctornum)) {
-    if (us_doctornum[i,2]>350){
-      us_doctornum[i,3]<-"high"
+us_doctornum[,"doctor_condition"] <- NA #creating a empty column
+for(i in 1:nrow(us_doctornum)) { #setting the for loop
+    if (us_doctornum[i,2]>350){ #setting the if condition
+      us_doctornum[i,3]<-"high" #assign the condition to the table
     }
-    
+    else if(us_doctornum[i,2]>270 && us_doctornum[i,2]<=350){ #setting the if condition
+      us_doctornum[i,3]<-"medium" #assign the condition to the table
+    }
+    else if(us_doctornum[i,2]>220 && us_doctornum[i,2]<=270){ #setting the if condition
+      us_doctornum[i,3]<-"low" #assign the condition to the table
+    }
+    else{
+      us_doctornum[i,3]<-"poor" #assign the condition to the table
+    }
 }
 ```
 
+###To draw the graph, I combine the newest data with "us_doctornum" doctor table. Then, I add two variables. First one called "death_rate" which is the ratio of death. Second, one called "death_rate" which is the ration of patients and doctor rate. 
 ```{r}
-
-us_doctornum
+data_with_doctor_inf <- new_data%>% #assigning the new table
+  inner_join(us_doctornum, by = "state")%>% #joining the table
+  mutate(death_rate = deaths/cases, doctor_rate = cases/doctor_pre_100000) #mutating the new variable
+  
+data_with_doctor_inf%>%
+  head(10)
+```
+###From the boxplot and point graph, we can see the state with high and medium dotcor condition have higher average death rate. But, the state with low and poor doctor condition have large death rate range.
+```{r}
+data_with_doctor_inf%>%
+  ggplot(aes(x=doctor_condition , y = death_rate, color = doctor_condition))+ #setting the aes 
+  geom_boxplot()+ #drawing the boxplot
+  geom_point() #drawing the points
+```
+###But, If we look the realtion between the deaths rate and doctor rate, we can find there are position reation. It's means the death rate will be higher, if doctor have to treat too many patients.
+```{r}
+data_with_doctor_inf%>%
+  ggplot(aes(x=doctor_rate , y = death_rate))+ #setting the aes 
+  geom_point()+ #drawing the points
+  geom_smooth(method='lm', formula= y~x) #drawing the regression line
+```
+###Then, I clean the gdp table and only select the state name and GDP per capita in this table. Then I assign these two variables to a new table.
+```{r}
+per_gdp_table <- gdp_table%>%
+  rename(per_gdp = "GDP per capita", #changing the columns names
+         state = "Statefederal district or territory")%>% 
+  select(state,per_gdp) #selecting the variables
+per_gdp_table%>%
+  tail(10) #checking the table
+```
+###I join the GDP per capita table with original table.
+```{r}
+complete_data<- data_with_doctor_inf%>%
+  left_join(per_gdp_table, by = "state") #joining the table
+complete_data$per_gdp<- as.numeric(gsub(",", "", complete_data$per_gdp )) #changing the format of per_gdp variable
+complete_data%>% #checking the table
+  glimpse() #checking the table
+complete_data%>%
+  head(10) #checking the table
+```
+###By using the correlation  function, I find the GDP per capita has strong positive relation with cases number and weak relation with death rate.
+```{r}
+cor(complete_data$per_gdp,complete_data$cases) #finding the correlation index
+cor(complete_data$per_gdp ,complete_data$death_rate) #finding the correlation index
+```
+###Then I draw the point graph. The x axis is GDP per capita and y axis is the death rate. Then the regression line shows that there are weak relation between death rate and GDP per capita. And the dot size represents the doctor rate. Thus we can see the trend that high doctor rate (meaning a doctor needs to take care of more patients) tend to have higher death rate.
+```{r}
+complete_data%>%
+  ggplot(aes(x=per_gdp, y = death_rate ))+ #using ggplot to draw the points
+  geom_point(aes( size = doctor_rate ))+
+  geom_smooth(method='lm', formula= y~x) #drawing the regression line
 ```
 
-```{r}
+###Finally, although I used graph to explore the relationship between these variables and mortality, if I want to be able to clearly show the relationship between these variables and mortality, I think I need to use machine learning methods to define and clear the relationship between the death rate and these variables.
 
+###using the party package to get the mod for the relationship between the death rate and these variables.
+```{r}
+mod1 <- party::ctree(death_rate ~  per_gdp + doctor_rate, data = complete_data) #use ctree to draw the mod between variables
+mod1
 ```
 
+###using the plot function to draw the node graph of the mod1. We can find that the result of machine learning indicates that the doctor rate is more related to death rate. In node 2 which the doctor below than 31.886, the death rate is lower with the range from 0.05 to 0.5 and the mean of death rate is 0.3. In node 3 which the doctor greater than 31.886, the death rate is higher with the range from 0.25 to 0.75 and the mean of death rate is 0.45. 
 ```{r}
-
+plot(mod1, "simple") #ploting the mod
 ```
 
-```{r}
+### Conclusion: Through the exploration in the first part, we have seen an increase in the number of cases and deaths in each state. In the second part, I introduced several variables, including death rate, doctor ratio, GDP per capita, and doctor status. Then I drew a graph to study the relationship between death rate and other variables. The conclusion was that there was a very weak positive relationship between gpd per capita and death rate; there was a relatively strong positive relationship between the proportion of doctors and mortality; There is a tendency to have a higher mortality rate for these states with good doctors. 
 
-```
-
-```{r}
-
-```
-```{r}
-
-```
-
-
-```{r}
-
-```
+### Thinking about the project: Although I studied the relationship between these variables and mortality through drawing and machine learning. But the conclusion I got is very counter-intuitive, because in common sense, we think  the state that has more wealthy and more doctors will have higher death rates. But in this series of data analysis, we see that doctors and states with high GDP per capita will have more mortality. However what is in line with our common sense is that states with doctor rate (meaning a doctor needs to take care of more patients) will have a higher death rate. But in the future improvement of the project, I will add more variables and draw more detailed images to explain the reasons behind the mortality.
 
 ```{r}
 
