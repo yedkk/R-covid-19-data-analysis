@@ -192,7 +192,3 @@ plot(mod1, "simple") #ploting the mod
 ```{r}
 
 ```
-
-```{r}
-
-```
